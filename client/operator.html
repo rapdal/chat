@@ -53,7 +53,10 @@
 			</div>
 		</div>
 		<div ng-if="isChatOpen" class="well" style="max-width:400px;">			
-			<div id="chat-head">{{client.name}}</div>
+			<div id="chat-head">
+				<span>{{client.name}}</span>
+				<button ng-click="leaveRoom()" class="btn btn-xs btn-default pull-right">Leave</button>
+			</div>
 			<div id="chat-body">	
 				<div id="chat-message" ng-if="messages.length">			
 					<ul>

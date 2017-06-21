@@ -42,7 +42,7 @@ def get_clients():
 	return json.dumps(Clients), 200
 
 @app.route('/operator', methods=['POST'])
-def add_operator():	
+def handle_operator():	
 	if not request.json or not 'name' in request.json:
 		abort(400)
 	operator = request.json	
@@ -51,18 +51,17 @@ def add_operator():
 	return jsonify(operator), 201
 
 @app.route('/client', methods=['POST'])
-def add_client():
+def handle_client():
 	room_id = randint(100000000,999999999)	
 	client = request.json
 	client['room_id'] = room_id
 	client['serviced'] = False
-	Clients.append(client)
-	socketio.emit('clients', Clients, broadcast=True)	
+	add_client(client)
 	payload = {'room_id': room_id}
 	return jsonify(payload), 201
 
 @app.route('/accept', methods=['POST'])
-def accept_request():	
+def handle_request():	
 	if not request.json or not 'room_id' in request.json:
 		abort(400)
 	room_id = request.json['room_id']
@@ -79,7 +78,23 @@ def accept_request():
       	'message': 'Operator has connected.'
 	}
 	socketio.emit('chat', payload, room=room_id)	
-	return 'Success', 201
+	return 'Success', 201	
+
+def add_client(client):	
+	Clients.append(client)
+	socketio.emit('clients', Clients, broadcast=True)
+
+def delete_client(room_id):
+	client_index = get_array_index('room_id', room_id, Clients)
+	Clients.pop(client_index)
+	socketio.emit('clients', Clients, broadcast=True)
+
+def get_array_index(needle, value, haystack):	
+	for index, item in enumerate(haystack):			
+		if item[needle] == value:		
+			return index			
+	return None
+
 
 # SOCKET CONNECTIONS
 
@@ -94,17 +109,15 @@ def accept_request():
 def join(room_id):	
 	join_room(room_id)	
 
+@socketio.on('leave')
+def leave(room_id):	
+	leave_room(room_id)	
+
 @socketio.on('send_message')
 def send_message(data):
 	room_id = data['room_id']
 	emit('chat', data, room=room_id)
 
-
-def get_array_index(needle, value, haystack):	
-	for index, item in enumerate(haystack):			
-		if item[needle] == value:		
-			return index			
-	return None
 
 if __name__ == '__main__':
     socketio.run(app)

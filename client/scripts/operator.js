@@ -37,7 +37,6 @@ chatApp.controller('OperatorController', function($rootScope, $scope, socket, AP
   	APIService.addOperator($scope.operator).then(function(response) {
       $scope.operator = response.data
       $scope.operator.active = true;
-      socket.emit('join', $scope.operator.room_id);
     });
   }
 
@@ -63,4 +62,17 @@ chatApp.controller('OperatorController', function($rootScope, $scope, socket, AP
     socket.emit('send_message', payload);
     $scope.message.value = "";
   }  
+
+  $scope.leaveRoom = function() {
+    var payload = {
+      'room_id': $scope.client.room_id,
+      'sender': 'system',
+      'name': $scope.operator.name,
+      'message':'Operator has disconnected. Reopen issue by checking back on the Support page.'
+    };
+    socket.emit('send_message', payload);
+    socket.emit('leave', $scope.client.room_id);
+    $scope.client = {};    
+    $scope.isChatOpen = false;
+  }
 });
