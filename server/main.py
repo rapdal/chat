@@ -1,4 +1,5 @@
 from flask import Flask, request, abort, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_socketio import send, emit
@@ -18,14 +19,15 @@ app.config['DEFAULT_PARSERS'] = [
 ]
 CORS(app)
 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
+db = SQLAlchemy(app)
+
+
 socketio = SocketIO(app)
 print('### Server Running ###')
 
-sockets = []
 Operators = []
-# {'room_id':123456789, 'name':'john', 'client_pending':[]}
-
-Clients = []
+Rooms = []
 
 # API ROUTES
 
@@ -37,61 +39,76 @@ def index():
 def get_operators():
 	return json.dumps(Operators), 200
 
-@app.route('/clients')
-def get_clients():
-	return json.dumps(Clients), 200
+app.route('/operator')
+def get_operator_by_session():
+	session_id = request.json['session_id']
+	user_id = request.json['user_id']
+	operator_index = get_array_index('session_id', session_id, Operators)	
+	return jsonify(Operators[operator_index]), 200
+
+@app.route('/rooms')
+def get_rooms():
+	return json.dumps(Rooms), 200
+
+@app.route('/room/<int:room_id>')
+def get_room_by_id(room_id):
+	room = {}
+	room_index = get_array_index('id', room_id, Rooms)
+	if room_index is not None:
+		room = Rooms[room_index]
+	return jsonify(room), 200
 
 @app.route('/operator', methods=['POST'])
-def handle_operator():	
-	if not request.json or not 'name' in request.json:
+def handle_add_operator():	
+	if not request.json or not 'session_id' in request.json:
 		abort(400)
 	operator = request.json	
+	operator['active'] = True
 	Operators.append(operator)		
 	socketio.emit('operators', Operators, broadcast=True)		
 	return jsonify(operator), 201
 
-@app.route('/client', methods=['POST'])
-def handle_client():
-	room_id = randint(100000000,999999999)	
-	client = request.json
-	client['room_id'] = room_id
-	client['serviced'] = False
-	add_client(client)
+@app.route('/room', methods=['POST'])
+def handle_add_room():
+	room = {}	
+	room_id = randint(100000000,999999999)		
+	room['id'] = room_id
+	room['client'] = request.json
+	room['status'] = 'open'
+	room['operator'] = {}
+	add_room(room)
 	payload = {'room_id': room_id}
 	return jsonify(payload), 201
 
 @app.route('/accept', methods=['POST'])
-def handle_request():	
-	if not request.json or not 'room_id' in request.json:
-		abort(400)
+def handle_join_operator():	
 	room_id = request.json['room_id']
-	operator_name = request.json['operator_name']
-
-	client_index = get_array_index('room_id', room_id, Clients)
-	Clients[client_index]['serviced'] = True
-	socketio.emit('clients', Clients, broadcast=True)
-
-	payload = {
-		'room_id': room_id,
-      	'sender': 'system',
-      	'name': operator_name,
-      	'message': 'Operator has connected.'
-	}
-	socketio.emit('chat', payload, room=room_id)	
+	operator = request.json['operator']	
+	room_index = get_array_index('id', room_id, Rooms)
+	Rooms[room_index]['status'] = 'In Progress'
+	Rooms[room_index]['operator'] = operator
+	socketio.emit('rooms', Rooms, broadcast=True)
 	return 'Success', 201	
 
-def add_client(client):	
-	Clients.append(client)
-	socketio.emit('clients', Clients, broadcast=True)
+@app.route('/room/<int:room_id>', methods=['DELETE'])
+def handle_delete_room(room_id):
+	room_index = get_array_index('id', room_id, Rooms)
+	room = Rooms.pop(room_index)
+	socketio.emit('rooms', Rooms, broadcast=True)
+	return jsonify({'status': 'Success'}), 201
+
+def add_room(room):	
+	Rooms.append(room)
+	socketio.emit('rooms', Rooms, broadcast=True)
 
 def delete_client(room_id):
 	client_index = get_array_index('room_id', room_id, Clients)
 	Clients.pop(client_index)
-	socketio.emit('clients', Clients, broadcast=True)
+	socketio.emit('rooms', Rooms, broadcast=True)
 
-def get_array_index(needle, value, haystack):	
+def get_array_index(key, value, haystack):	
 	for index, item in enumerate(haystack):			
-		if item[needle] == value:		
+		if item[key] == value:		
 			return index			
 	return None
 
@@ -103,7 +120,7 @@ def get_array_index(needle, value, haystack):
 	# print(request.sid)
 # @socketio.on('disconnect')
 # def disconnect():
-	
+		
 
 @socketio.on('join')
 def join(room_id):	

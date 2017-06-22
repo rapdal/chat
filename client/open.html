@@ -17,17 +17,33 @@
 	<script type="text/javascript" src="scripts/app.js" ></script>
 	<script type="text/javascript" src="scripts/socket.js" ></script>
 	<script type="text/javascript" src="scripts/services.js" ></script>
-	<script type="text/javascript" src="scripts/client.js" ></script>
+	<script type="text/javascript" src="scripts/chat.js" ></script>
 </head>
-<body ng-app="chatApp">
-	<h1>Client Chat Support</h1>
-	<div ng-controller="ClientController">	
-		<div>			
-			<div ng-if="operators.length">	
-				<a href="#" target=""><button ng-click="requestChat()" class="btn btn-primary">Request</button></a>
-			</div>			
-			<div ng-if="!operators.length">No available operators at the moment.</div>
-		</div>		
-	</div>	
+<body ng-app="chatApp">	
+	<div ng-controller="ChatController">	
+		<div class="well" style="max-width:400px;">									
+			<span>{{receiver.name}}</span>
+			<button ng-click="leaveChat()" class="btn btn-xs btn-default pull-right">Leave</button>
+			</div>
+			<div id="chat-body">	
+				<div id="chat-message" ng-if="messages.length">			
+					<ul>
+						<li ng-repeat="message in messages track by $index" 
+							ng-class="{
+								'chat-messages-left':message.sender=='operator', 'chat-messages-right':message.sender=='client',								
+							}">
+							<div ng-class="{'chat-messages':message.sender!='system'}">{{message.message}}</div>
+						</li>
+					</ul>
+				</div>
+				<div ng-if="!messages.length">Connecting to available operator...</div>
+			</div>
+			<div id="chat-foot">	
+				<form novalidate ng-submit="sendMessage()">
+					<input ng-model="message.value" class="form-control" type="text" placeholder="Send message..." />
+				</form>
+			</div>
+		</div>
+	</div>
 </body>
 </html>

@@ -22,7 +22,7 @@
 <body ng-app="chatApp">
 	<h1>Operator Interface</h1>
 	<div ng-controller="OperatorController">
-		<div ng-if="!isChatOpen" style="max-width:250px;">
+		<div style="max-width:250px;">
 			<span>Operators Available:</span>
 			<div id="operator-list">
 				<ul ng-if="operators.length">
@@ -42,40 +42,16 @@
 				<div ng-if="operator.active">
 					<div>[{{operator.name}}] Waiting for client...</div>
 					<ul>
-						<li ng-repeat="client in clients">
-							<span class="col-xs-4">{{client.name}}</span>
-							<button ng-click="acceptRequest(client)" 
-									class="btn btn-info btn-xs" ng-disabled="client.serviced">
+						<li ng-repeat="room in rooms track by $index">
+							<span class="col-xs-4">{{room.client.name}}</span>
+							<button ng-click="acceptRequest(room.id)" 
+									class="btn btn-info btn-xs" ng-disabled="room.status != 'open'">
 									Accept</button>
 						</li>
 					</ul>
 				</div>			
 			</div>
-		</div>
-		<div ng-if="isChatOpen" class="well" style="max-width:400px;">			
-			<div id="chat-head">
-				<span>{{client.name}}</span>
-				<button ng-click="leaveRoom()" class="btn btn-xs btn-default pull-right">Leave</button>
-			</div>
-			<div id="chat-body">	
-				<div id="chat-message" ng-if="messages.length">			
-					<ul>
-						<li ng-repeat="message in messages" 
-							ng-class="{								
-								'chat-messages-left':message.sender=='operator', 
-								'chat-messages-right':message.sender=='client',								
-							}">
-							<div ng-class="{'chat-messages':message.sender!='system'}">{{message.message}}</div>
-						</li>
-					</ul>
-				</div>				
-			</div>
-			<div id="chat-foot">	
-				<form novalidate ng-submit="sendMessage()">
-					<input ng-model="message.value" class="form-control" type="text" placeholder="Send message..." />
-				</form>
-			</div>
-		</div>
+		</div>		
 	</div>	
 </body>
 </html>

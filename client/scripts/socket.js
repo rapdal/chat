@@ -1,6 +1,5 @@
 chatApp.factory('socket', ['$rootScope', function($rootScope){
-  $rootScope.server_ip = 'http://192.168.1.98:5000';
-  $rootScope.session_id = SESSION_ID;
+  $rootScope.server_ip = 'http://192.168.1.98:5000';  
 
   var socket = io.connect($rootScope.server_ip);
   return {
