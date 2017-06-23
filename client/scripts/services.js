@@ -35,7 +35,7 @@ chatApp.factory('APIService', function($rootScope, $http){
 		      }
 		    }, function (httpError) { throw httpError.status + " : " + httpError.data; });
 	  },
-	  requestChat: function(client) {
+	  createRoom: function(client) {
 	  	return $http({
 		      method: 'POST',
 		      url: $rootScope.server_ip + '/room',
@@ -69,7 +69,7 @@ chatApp.factory('APIService', function($rootScope, $http){
 			  	}			  	
 				}, function (httpError) { throw httpError.status + " : " + httpError.data; });
 		},
-		leaveChat: function(room_id) {
+		deleteRoom: function(room_id) {
 			return $http({
 			  	method: 'DELETE',
 			  	url: $rootScope.server_ip + '/room/'+room_id,

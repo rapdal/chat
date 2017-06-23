@@ -8,17 +8,17 @@ chatApp.controller('ChatController', function($rootScope, $scope, socket, $locat
    	
   var searchObject = $location.search();
   room_id = searchObject.room_id;
-  interface = searchObject.interface  
+  $scope.interface = searchObject.interface;  
 
   socket.on('connect', function() {
   	socket.emit('join', room_id);
   	var promise = getRoom(room_id);  	
   	promise.then(function(response) {	  	
-	    if (interface == 'client') {
+	    if ($scope.interface == 'client') {
 	    	$scope.sender = response.data.client
 	    	$scope.receiver = response.data.operator
 	    }
-	    else if (interface == 'operator') {
+	    else if ($scope.interface == 'operator') {
 	    	$scope.sender = response.data.operator
 	    	$scope.receiver = response.data.client	    	
 		  	var payload = {
@@ -33,7 +33,7 @@ chatApp.controller('ChatController', function($rootScope, $scope, socket, $locat
   });
 
   socket.on('chat', function(data) {
-  	if (data.sender=='system' && interface=='client') {
+  	if (data.sender=='system' && $scope.interface=='client') {
   		var promise = getRoom(room_id);
   		promise.then(function(response) {	  	
 	    	$scope.sender = response.data.client;
@@ -55,23 +55,23 @@ chatApp.controller('ChatController', function($rootScope, $scope, socket, $locat
   }  
 
   $scope.leaveChat = function() {
-  	APIService.leaveChat(room_id).then(function(response) {
-	    if ($scope.sender.type == 'client') {
-	  		message = 'Client has disconnected.'
-	  	} 
-	  	else if ($scope.sender.type == 'operator') {
-	  		message = 'Operator has disconnected. Reopen issue by checking back on the Support page.'
-	  	}
-	    var payload = {
-	      'room_id': room_id,
-	      'sender': 'system',
-	      'name': 'System',
-	      'message': message
-	    };
-	    socket.emit('send_message', payload);
-	    socket.emit('leave', room_id);    
-	    window.close();  
-	  });
+  	socket.emit('leave', room_id);
+  	if ($scope.sender.type == 'client') {
+  		message = 'Client has disconnected.'
+  		APIService.deleteRoom(room_id).then(function(response) {
+			});
+		} 
+		else if ($scope.sender.type == 'operator') {
+			message = 'Operator has disconnected. Reopen issue by checking back on the Support page.'	  	
+		}
+		var payload = {
+      'room_id': room_id,
+      'sender': 'system',
+      'name': 'System',
+      'message': message
+    };
+		socket.emit('send_message', payload); 
+		window.close();  
   }
 
   getRoom = function(room_id) {

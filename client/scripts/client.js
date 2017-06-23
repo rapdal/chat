@@ -30,7 +30,7 @@ chatApp.controller('ClientController', function($rootScope, $scope, socket, APIS
         alert("You already have a pending request.")
       }
       else {
-        APIService.requestChat($scope.client).then(function(response) {                           
+        APIService.createRoom($scope.client).then(function(response) {                           
           $scope.client.room_id = response.data.room_id; 
           var chat_url = '/chat/client/open.html#?interface=client&room_id=' + $scope.client.room_id;      
           window.open(chat_url, '_blank', 'width=400,height=500');

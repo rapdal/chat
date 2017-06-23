@@ -2,8 +2,8 @@ from flask import Flask, request, abort, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from flask_socketio import send, emit
-from flask_socketio import join_room, leave_room
+from flask_socketio import send, emit, rooms
+from flask_socketio import join_room, leave_room, close_room
 
 import logging
 import json
@@ -43,7 +43,7 @@ app.route('/operator')
 def get_operator_by_session():
 	session_id = request.json['session_id']
 	user_id = request.json['user_id']
-	operator_index = get_array_index('session_id', session_id, Operators)	
+	operator_index = _get_array_index('session_id', session_id, Operators)	
 	return jsonify(Operators[operator_index]), 200
 
 @app.route('/rooms')
@@ -53,7 +53,7 @@ def get_rooms():
 @app.route('/room/<int:room_id>')
 def get_room_by_id(room_id):
 	room = {}
-	room_index = get_array_index('id', room_id, Rooms)
+	room_index = _get_array_index('id', room_id, Rooms)
 	if room_index is not None:
 		room = Rooms[room_index]
 	return jsonify(room), 200
@@ -84,33 +84,16 @@ def handle_add_room():
 def handle_join_operator():	
 	room_id = request.json['room_id']
 	operator = request.json['operator']	
-	room_index = get_array_index('id', room_id, Rooms)
+	room_index = _get_array_index('id', room_id, Rooms)
 	Rooms[room_index]['status'] = 'In Progress'
 	Rooms[room_index]['operator'] = operator
 	socketio.emit('rooms', Rooms, broadcast=True)
 	return 'Success', 201	
 
 @app.route('/room/<int:room_id>', methods=['DELETE'])
-def handle_delete_room(room_id):
-	room_index = get_array_index('id', room_id, Rooms)
-	room = Rooms.pop(room_index)
-	socketio.emit('rooms', Rooms, broadcast=True)
+def handle_close_room(room_id):
+	delete_room(int(room_id))	
 	return jsonify({'status': 'Success'}), 201
-
-def add_room(room):	
-	Rooms.append(room)
-	socketio.emit('rooms', Rooms, broadcast=True)
-
-def delete_client(room_id):
-	client_index = get_array_index('room_id', room_id, Clients)
-	Clients.pop(client_index)
-	socketio.emit('rooms', Rooms, broadcast=True)
-
-def get_array_index(key, value, haystack):	
-	for index, item in enumerate(haystack):			
-		if item[key] == value:		
-			return index			
-	return None
 
 
 # SOCKET CONNECTIONS
@@ -118,9 +101,13 @@ def get_array_index(key, value, haystack):
 # @socketio.on('connect')
 # def connect():
 	# print(request.sid)
-# @socketio.on('disconnect')
-# def disconnect():
-		
+
+@socketio.on('disconnect')
+def disconnect():
+	rooms_connected = rooms()
+	for room_id in rooms_connected:
+		if room_id != request.sid:			
+			delete_room(int(room_id))			
 
 @socketio.on('join')
 def join(room_id):	
@@ -134,6 +121,23 @@ def leave(room_id):
 def send_message(data):
 	room_id = data['room_id']
 	emit('chat', data, room=room_id)
+
+
+def _get_array_index(key, value, haystack):
+	for index, item in enumerate(haystack):	
+		if item[key] == value:	
+			return index			
+	return None
+
+def add_room(room):	
+	Rooms.append(room)
+	socketio.emit('rooms', Rooms, broadcast=True)	
+
+def delete_room(room_id):
+	room_index = _get_array_index('id', room_id, Rooms)
+	room = Rooms.pop(room_index)					
+	socketio.close_room(room_id)
+	socketio.emit('rooms', Rooms, broadcast=True)		
 
 
 if __name__ == '__main__':

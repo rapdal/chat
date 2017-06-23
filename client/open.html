@@ -23,7 +23,10 @@
 	<div ng-controller="ChatController">	
 		<div class="well" style="max-width:400px;">									
 			<span>{{receiver.name}}</span>
-			<button ng-click="leaveChat()" class="btn btn-xs btn-default pull-right">Leave</button>
+			<button ng-click="leaveChat()" class="btn btn-xs btn-default pull-right">
+				<span ng-if="interface=='client'">Leave</span>
+				<span ng-if="interface=='operator'">Close</span>
+			</button>
 			</div>
 			<div id="chat-body">	
 				<div id="chat-message" ng-if="messages.length">			
@@ -36,14 +39,14 @@
 						</li>
 					</ul>
 				</div>
-				<div ng-if="!messages.length">Connecting to available operator...</div>
+				<div ng-if="!messages.length">Connecting to available operator. Please don't close the window..</div>
 			</div>
 			<div id="chat-foot">	
 				<form novalidate ng-submit="sendMessage()">
-					<input ng-model="message.value" class="form-control" type="text" placeholder="Send message..." />
+					<input ng-disabled="!messages.length" ng-model="message.value" class="form-control" type="text" placeholder="Send message..." />
 				</form>
 			</div>
 		</div>
-	</div>
+	</div>	
 </body>
 </html>
